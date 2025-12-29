@@ -2,6 +2,7 @@ package main
 
 import (
 	"AI_recruit/config"
+	"AI_recruit/docs"
 	"AI_recruit/handlers"
 	"AI_recruit/logger"
 	"AI_recruit/repository"
@@ -11,6 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/viper"
+	swaggerfiles "github.com/swaggo/files"
+	swagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/zap"
 )
 
@@ -98,6 +101,9 @@ func main() {
 	}
 
 	r.POST("/templates/:id/generate", candHandler.GenerateTelegramText)
+
+	docs.SwaggerInfo.BasePath = "/"
+	r.GET("/swagger/*any", swagger.WrapHandler(swaggerfiles.Handler))
 
 	// 6. Запуск сервера
 	l.Info("Сервер запущен на порту :8080")
