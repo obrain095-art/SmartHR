@@ -1,0 +1,44 @@
+CREATE TABLE recruiters (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    company_name TEXT
+);
+
+CREATE TABLE vacancies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    recruiter_id UUID REFERENCES recruiters(id),
+    title TEXT NOT NULL,
+    ai_filters TEXT,
+    short_link TEXT UNIQUE,
+    is_archived BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE message_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    recruiter_id UUID REFERENCES recruiters(id),
+    title TEXT,
+    body_text TEXT
+);
+CREATE TABLE IF NOT EXISTS resume_data (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    application_id UUID NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+    ai_verdict TEXT,
+    parsed_text TEXT,
+    skills_detected TEXT
+);
+CREATE TABLE applications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    vacancy_id UUID REFERENCES vacancies(id),
+    candidate_id UUID,
+    status TEXT DEFAULT 'Новый',
+    ai_score INT,
+    applied_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE candidates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT UNIQUE NOT NULL,	
+    password_hash TEXT NOT NULL,
+    telegram_username TEXT NOT NULL
+);
