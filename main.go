@@ -14,6 +14,11 @@ import (
 	"go.uber.org/zap"
 )
 
+// @title AI Recruiting API
+// @version 1.0
+// @description API сервис для автоматизации рекрутинга.
+// @host ai-recruiting-api.onrender.com
+// @BasePath /
 func main() {
 	// 1. Инициализация логгера
 	l := logger.GetLogger()

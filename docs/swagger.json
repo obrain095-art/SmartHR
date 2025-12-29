@@ -1,0 +1,12 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "API сервис для автоматизации рекрутинга.",
+        "title": "AI Recruiting API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "ai-recruiting-api.onrender.com",
+    "basePath": "/",
+    "paths": {}
+}

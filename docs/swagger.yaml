@@ -1,0 +1,9 @@
+basePath: /
+host: ai-recruiting-api.onrender.com
+info:
+  contact: {}
+  description: API сервис для автоматизации рекрутинга.
+  title: AI Recruiting API
+  version: "1.0"
+paths: {}
+swagger: "2.0"
