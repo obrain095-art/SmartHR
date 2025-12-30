@@ -6,7 +6,830 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "ai-recruiting-api.onrender.com",
+    "host": "ai-recruiting.onrender.com",
     "basePath": "/",
-    "paths": {}
+    "paths": {
+        "/applications": {
+            "post": {
+                "description": "Создает отклик и запись в RESUME_DATA (ИИ-анализ)",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portal"
+                ],
+                "summary": "Подача отклика",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID кандидата",
+                        "name": "candidate_id",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID вакансии",
+                        "name": "vacancy_id",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Успешный отклик и ID заявки",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/applications/{id}/ai-data": {
+            "get": {
+                "description": "Получает вердикт, скоринг и распознанный текст из RESUME_DATA",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "recruiter_tools"
+                ],
+                "summary": "Результаты анализа ИИ",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID заявки (application_id)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Данные анализа",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/applications/{id}/status": {
+            "patch": {
+                "description": "Обновляет статус конкретного отклика (например: 'Интервью', 'Оффер', 'Отказ') по его ID в URL.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "recruiter_tools"
+                ],
+                "summary": "Изменение статуса заявки",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID заявки (application_id)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новый статус для установки",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Статус успешно обновлен",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка: Неверный формат JSON",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка: Проблема при обновлении в базе данных",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/candidate/signup": {
+            "post": {
+                "description": "Создает аккаунт кандидата, сохраняя email и никнейм в Telegram для последующей связи.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Регистрация соискателя",
+                "parameters": [
+                    {
+                        "description": "Данные для регистрации соискателя",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "email": {
+                                    "type": "string"
+                                },
+                                "password": {
+                                    "type": "string"
+                                },
+                                "telegram_username": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Пример: { 'token': '...', 'candidate_id': '...' }",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка: Некорректные данные",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Ошибка: Почта уже используется",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "description": "Проверяет учетные данные пользователя. Сравнивает введенный пароль с хешем в базе данных.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Вход в систему",
+                "parameters": [
+                    {
+                        "description": "Учетные данные пользователя",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "email": {
+                                    "type": "string"
+                                },
+                                "password": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Данные пользователя: { 'id': '...', 'email': '...' }",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Ошибка: Неверный логин или пароль",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/recruiter/signup": {
+            "post": {
+                "description": "Создает новый аккаунт рекрутера с безопасным хешированием пароля через bcrypt.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Регистрация рекрутера",
+                "parameters": [
+                    {
+                        "description": "Данные для регистрации рекрутера",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "company_name": {
+                                    "type": "string"
+                                },
+                                "email": {
+                                    "type": "string"
+                                },
+                                "password": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Пример: { 'token': '...', 'recruiter_id': '...' }",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка: Неверный формат входных данных",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Ошибка: Пользователь с таким Email уже существует",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка: Критическая ошибка при хешировании или сохранении",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/my-applications": {
+            "get": {
+                "description": "Получение истории всех откликов текущего кандидата",
+                "tags": [
+                    "portal"
+                ],
+                "summary": "Мои отклики",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID кандидата",
+                        "name": "candidate_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/templates": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "templates"
+                ],
+                "summary": "Список всех шаблонов рекрутера",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID рекрутера",
+                        "name": "recruiter_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.MessageTemplate"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "templates"
+                ],
+                "summary": "Создать шаблон сообщения",
+                "parameters": [
+                    {
+                        "description": "Данные шаблона",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "body_text": {
+                                    "type": "string"
+                                },
+                                "recruiter_id": {
+                                    "type": "string"
+                                },
+                                "title": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/templates/{id}": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "templates"
+                ],
+                "summary": "Обновить шаблон",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID шаблона",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новые данные",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "body_text": {
+                                    "type": "string"
+                                },
+                                "title": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Updated",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "templates"
+                ],
+                "summary": "Удалить шаблон",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID шаблона",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Deleted",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/templates/{id}/generate": {
+            "post": {
+                "description": "Получает шаблон сообщения по ID, заменяет в нем плейсхолдеры {name} и {job} данными кандидата и формирует прямую ссылку на чат.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "recruiter_tools"
+                ],
+                "summary": "Генерация сообщения для Telegram",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID шаблона сообщения в базе данных",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Данные для генерации сообщения",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "candidate_name": {
+                                    "type": "string"
+                                },
+                                "telegram_username": {
+                                    "type": "string"
+                                },
+                                "vacancy_title": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Пример ответа: { 'generated_text': '...', 'telegram_link': '...' }",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка: Неверные входные данные или пустые поля",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Ошибка: Шаблон с таким ID не найден",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/vacancies": {
+            "get": {
+                "description": "Получает все активные вакансии",
+                "tags": [
+                    "vacancies"
+                ],
+                "summary": "Список активных вакансий",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/models.Vacancy"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Создает вакансию и автоматически генерирует short_link",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "vacancies"
+                ],
+                "summary": "Создание вакансии",
+                "parameters": [
+                    {
+                        "description": "Объект вакансии",
+                        "name": "vacancy",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.VacancyCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Вакансия успешно создана"
+                    },
+                    "400": {
+                        "description": "Ошибка парсинга JSON",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/vacancies/link/{short_link}": {
+            "get": {
+                "description": "Получение деталей вакансии через short_link",
+                "tags": [
+                    "portal"
+                ],
+                "summary": "Просмотр вакансии по ссылке",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Короткая ссылка вакансии",
+                        "name": "short_link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Vacancy"
+                        }
+                    },
+                    "404": {
+                        "description": "Вакансия не найдена",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/vacancies/{id}/applications": {
+            "get": {
+                "description": "Получает все заявки кандидатов для конкретной вакансии",
+                "tags": [
+                    "vacancies"
+                ],
+                "summary": "Список откликов на вакансию",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID вакансии",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Application"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/vacancies/{id}/archive": {
+            "patch": {
+                "description": "Переводит вакансию в статус архивной по ID",
+                "tags": [
+                    "vacancies"
+                ],
+                "summary": "Архивация вакансии",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID вакансии",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Vacancy archived",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Вакансия не найдена",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.Application": {
+            "type": "object",
+            "properties": {
+                "ai_score": {
+                    "type": "integer"
+                },
+                "applied_at": {
+                    "type": "string"
+                },
+                "candidate_id": {
+                    "type": "string"
+                },
+                "candidate_name": {
+                    "description": "Для отображения в списке рекрутера",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "vacancy_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.MessageTemplate": {
+            "type": "object",
+            "properties": {
+                "body_text": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "recruiter_id": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Vacancy": {
+            "type": "object",
+            "properties": {
+                "ai_filters": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_archived": {
+                    "type": "boolean"
+                },
+                "recruiter_id": {
+                    "type": "string"
+                },
+                "short_link": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.VacancyCreateRequest": {
+            "type": "object",
+            "properties": {
+                "ai_filters": {
+                    "type": "string"
+                },
+                "is_archived": {
+                    "type": "boolean"
+                },
+                "recruiter_id": {
+                    "type": "string"
+                },
+                "short_link": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        }
+    }
 }

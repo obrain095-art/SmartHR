@@ -28,6 +28,14 @@ type Vacancy struct {
 	IsArchived  bool   `json:"is_archived"`
 }
 
+type VacancyCreateRequest struct {
+	RecruiterID string `json:"recruiter_id"`
+	Title       string `json:"title"`
+	AIFilters   string `json:"ai_filters"`
+	ShortLink   string `json:"short_link"`
+	IsArchived  bool   `json:"is_archived"`
+}
+
 // Отклик (UC-C3, UC-C4)
 // Отклик (UC-C3, UC-C4)
 type Application struct {
@@ -41,12 +49,12 @@ type Application struct {
 }
 
 type ResumeData struct {
-	ID            string `json:"id"`
-	ApplicationID string `json:"application_id"`
-	AIVerdict     string `json:"ai_verdict"`
-	ParsedText    string `json:"parsed_text"`
+	ID             string `json:"id"`
+	ApplicationID  string `json:"application_id"`
+	AIVerdict      string `json:"ai_verdict"`
+	ParsedText     string `json:"parsed_text"`
 	SkillsDetected string `json:"skills_detected"`
-	AIScore       int    `json:"ai_score"` // Добавлено поле
+	AIScore        int    `json:"ai_score"` // Добавлено поле
 }
 
 // Шаблоны сообщений (UC-5)

@@ -1,9 +1,554 @@
 basePath: /
-host: ai-recruiting-api.onrender.com
+definitions:
+  models.Application:
+    properties:
+      ai_score:
+        type: integer
+      applied_at:
+        type: string
+      candidate_id:
+        type: string
+      candidate_name:
+        description: Для отображения в списке рекрутера
+        type: string
+      id:
+        type: string
+      status:
+        type: string
+      vacancy_id:
+        type: string
+    type: object
+  models.MessageTemplate:
+    properties:
+      body_text:
+        type: string
+      id:
+        type: string
+      recruiter_id:
+        type: string
+      title:
+        type: string
+    type: object
+  models.Vacancy:
+    properties:
+      ai_filters:
+        type: string
+      id:
+        type: string
+      is_archived:
+        type: boolean
+      recruiter_id:
+        type: string
+      short_link:
+        type: string
+      title:
+        type: string
+    type: object
+  models.VacancyCreateRequest:
+    properties:
+      ai_filters:
+        type: string
+      is_archived:
+        type: boolean
+      recruiter_id:
+        type: string
+      short_link:
+        type: string
+      title:
+        type: string
+    type: object
+host: ai-recruiting.onrender.com
 info:
   contact: {}
   description: API сервис для автоматизации рекрутинга.
   title: AI Recruiting API
   version: "1.0"
-paths: {}
+paths:
+  /applications:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Создает отклик и запись в RESUME_DATA (ИИ-анализ)
+      parameters:
+      - description: ID кандидата
+        in: formData
+        name: candidate_id
+        required: true
+        type: string
+      - description: ID вакансии
+        in: formData
+        name: vacancy_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Успешный отклик и ID заявки
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Подача отклика
+      tags:
+      - portal
+  /applications/{id}/ai-data:
+    get:
+      description: Получает вердикт, скоринг и распознанный текст из RESUME_DATA
+      parameters:
+      - description: ID заявки (application_id)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Данные анализа
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Результаты анализа ИИ
+      tags:
+      - recruiter_tools
+  /applications/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: 'Обновляет статус конкретного отклика (например: ''Интервью'',
+        ''Оффер'', ''Отказ'') по его ID в URL.'
+      parameters:
+      - description: ID заявки (application_id)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Новый статус для установки
+        in: body
+        name: input
+        required: true
+        schema:
+          properties:
+            status:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Статус успешно обновлен
+          schema:
+            type: string
+        "400":
+          description: 'Ошибка: Неверный формат JSON'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'Ошибка: Проблема при обновлении в базе данных'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Изменение статуса заявки
+      tags:
+      - recruiter_tools
+  /auth/candidate/signup:
+    post:
+      consumes:
+      - application/json
+      description: Создает аккаунт кандидата, сохраняя email и никнейм в Telegram
+        для последующей связи.
+      parameters:
+      - description: Данные для регистрации соискателя
+        in: body
+        name: input
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            password:
+              type: string
+            telegram_username:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Пример: { ''token'': ''...'', ''candidate_id'': ''...'' }'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'Ошибка: Некорректные данные'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: 'Ошибка: Почта уже используется'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Регистрация соискателя
+      tags:
+      - auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Проверяет учетные данные пользователя. Сравнивает введенный пароль
+        с хешем в базе данных.
+      parameters:
+      - description: Учетные данные пользователя
+        in: body
+        name: input
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            password:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Данные пользователя: { ''id'': ''...'', ''email'': ''...''
+            }'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'Ошибка: Неверный логин или пароль'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Вход в систему
+      tags:
+      - auth
+  /auth/recruiter/signup:
+    post:
+      consumes:
+      - application/json
+      description: Создает новый аккаунт рекрутера с безопасным хешированием пароля
+        через bcrypt.
+      parameters:
+      - description: Данные для регистрации рекрутера
+        in: body
+        name: input
+        required: true
+        schema:
+          properties:
+            company_name:
+              type: string
+            email:
+              type: string
+            password:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Пример: { ''token'': ''...'', ''recruiter_id'': ''...'' }'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'Ошибка: Неверный формат входных данных'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: 'Ошибка: Пользователь с таким Email уже существует'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'Ошибка: Критическая ошибка при хешировании или сохранении'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Регистрация рекрутера
+      tags:
+      - auth
+  /my-applications:
+    get:
+      description: Получение истории всех откликов текущего кандидата
+      parameters:
+      - description: ID кандидата
+        in: query
+        name: candidate_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: Мои отклики
+      tags:
+      - portal
+  /templates:
+    get:
+      parameters:
+      - description: ID рекрутера
+        in: query
+        name: recruiter_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.MessageTemplate'
+            type: array
+      summary: Список всех шаблонов рекрутера
+      tags:
+      - templates
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Данные шаблона
+        in: body
+        name: input
+        required: true
+        schema:
+          properties:
+            body_text:
+              type: string
+            recruiter_id:
+              type: string
+            title:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: string
+      summary: Создать шаблон сообщения
+      tags:
+      - templates
+  /templates/{id}:
+    delete:
+      parameters:
+      - description: ID шаблона
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Deleted
+          schema:
+            type: string
+      summary: Удалить шаблон
+      tags:
+      - templates
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID шаблона
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Новые данные
+        in: body
+        name: input
+        required: true
+        schema:
+          properties:
+            body_text:
+              type: string
+            title:
+              type: string
+          type: object
+      responses:
+        "200":
+          description: Updated
+          schema:
+            type: string
+      summary: Обновить шаблон
+      tags:
+      - templates
+  /templates/{id}/generate:
+    post:
+      consumes:
+      - application/json
+      description: Получает шаблон сообщения по ID, заменяет в нем плейсхолдеры {name}
+        и {job} данными кандидата и формирует прямую ссылку на чат.
+      parameters:
+      - description: ID шаблона сообщения в базе данных
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для генерации сообщения
+        in: body
+        name: input
+        required: true
+        schema:
+          properties:
+            candidate_name:
+              type: string
+            telegram_username:
+              type: string
+            vacancy_title:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Пример ответа: { ''generated_text'': ''...'', ''telegram_link'':
+            ''...'' }'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'Ошибка: Неверные входные данные или пустые поля'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'Ошибка: Шаблон с таким ID не найден'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Генерация сообщения для Telegram
+      tags:
+      - recruiter_tools
+  /vacancies:
+    get:
+      description: Получает все активные вакансии
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              items:
+                $ref: '#/definitions/models.Vacancy'
+              type: array
+            type: array
+      summary: Список активных вакансий
+      tags:
+      - vacancies
+    post:
+      consumes:
+      - application/json
+      description: Создает вакансию и автоматически генерирует short_link
+      parameters:
+      - description: Объект вакансии
+        in: body
+        name: vacancy
+        required: true
+        schema:
+          $ref: '#/definitions/models.VacancyCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Вакансия успешно создана
+        "400":
+          description: Ошибка парсинга JSON
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Создание вакансии
+      tags:
+      - vacancies
+  /vacancies/{id}/applications:
+    get:
+      description: Получает все заявки кандидатов для конкретной вакансии
+      parameters:
+      - description: ID вакансии
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Application'
+            type: array
+      summary: Список откликов на вакансию
+      tags:
+      - vacancies
+  /vacancies/{id}/archive:
+    patch:
+      description: Переводит вакансию в статус архивной по ID
+      parameters:
+      - description: ID вакансии
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Vacancy archived
+          schema:
+            type: string
+        "404":
+          description: Вакансия не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Архивация вакансии
+      tags:
+      - vacancies
+  /vacancies/link/{short_link}:
+    get:
+      description: Получение деталей вакансии через short_link
+      parameters:
+      - description: Короткая ссылка вакансии
+        in: path
+        name: short_link
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Vacancy'
+        "404":
+          description: Вакансия не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Просмотр вакансии по ссылке
+      tags:
+      - portal
 swagger: "2.0"

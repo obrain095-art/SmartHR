@@ -11,31 +11,17 @@ type CandidatePortalHandler struct {
 	Repo *repository.CandidatePortalRepository
 }
 
-func (h *CandidatePortalHandler) Auth(c *gin.Context) {
-	var input struct {
-		Email    string `json:"email"`
-		Telegram string `json:"telegram_username"`
-		Password string `json:"password"`
-	}
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
-		return
-	}
 
-	candidate := models.Candidate{
-		Email:            input.Email,
-		TelegramUsername: input.Telegram,
-		PasswordHash:     input.Password,
-	}
-
-	id, err := h.Repo.UpsertCandidate(c, candidate)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"candidate_id": id, "status": "authorized"})
-}
-
+// Apply godoc
+// @Summary Подача отклика
+// @Description Создает отклик и запись в RESUME_DATA (ИИ-анализ)
+// @Tags portal
+// @Accept x-www-form-urlencoded
+// @Produce json
+// @Param candidate_id formData string true "ID кандидата"
+// @Param vacancy_id formData string true "ID вакансии"
+// @Success 201 {object} map[string]interface{} "Успешный отклик и ID заявки"
+// @Router /applications [post]
 func (h *CandidatePortalHandler) Apply(c *gin.Context) {
 	candidateID := c.PostForm("candidate_id")
 	vacancyID := c.PostForm("vacancy_id")
@@ -67,6 +53,14 @@ func (h *CandidatePortalHandler) Apply(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"status": "success", "app_id": appID})
 }
 
+
+// MyApplications godoc
+// @Summary Мои отклики
+// @Description Получение истории всех откликов текущего кандидата
+// @Tags portal
+// @Param candidate_id query string true "ID кандидата"
+// @Success 200 {array} map[string]interface{}
+// @Router /my-applications [get]
 func (h *CandidatePortalHandler) MyApplications(c *gin.Context) {
 	candidateID := c.Query("candidate_id")
 	if candidateID == "" {
@@ -87,7 +81,14 @@ func (h *CandidatePortalHandler) MyApplications(c *gin.Context) {
 	c.JSON(http.StatusOK, apps)
 }
 
-// GET /vacancies/:short_link
+// ViewVacancy godoc
+// @Summary Просмотр вакансии по ссылке
+// @Description Получение деталей вакансии через short_link
+// @Tags portal
+// @Param short_link path string true "Короткая ссылка вакансии"
+// @Success 200 {object} models.Vacancy
+// @Failure 404 {object} map[string]string "Вакансия не найдена"
+// @Router /vacancies/link/{short_link} [get]
 func (h *CandidatePortalHandler) ViewVacancy(c *gin.Context) {
     shortLink := c.Param("short_link")
     

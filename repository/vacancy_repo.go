@@ -63,7 +63,7 @@ func (r *VacancyRepository) Archive(c context.Context, id string) error {
 }
 
 // Создание вакансии (теперь соответствует вызову в хендлере)
-func (r *VacancyRepository) Create(c context.Context, v models.Vacancy) error {
+func (r *VacancyRepository) Create(c context.Context, v models.VacancyCreateRequest) error {
 	query := `INSERT INTO vacancies (recruiter_id, title, ai_filters, short_link, is_archived) 
               VALUES ($1, $2, $3, $4, $5)`
 	_, err := r.DB.Exec(c, query, v.RecruiterID, v.Title, v.AIFilters, v.ShortLink, false)

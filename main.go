@@ -20,7 +20,7 @@ import (
 // @title AI Recruiting API
 // @version 1.0
 // @description API сервис для автоматизации рекрутинга.
-// @host ai-recruiting-api.onrender.com
+// @host ai-recruiting.onrender.com
 // @BasePath /
 func main() {
 	// 1. Инициализация логгера
@@ -41,6 +41,7 @@ func main() {
 
 	// 3. Инициализация слоев (Repo -> Handler)
 	// Убедитесь, что в структурах репозиториев поле называется Pool (или DB) и имеет тип *pgxpool.Pool
+
 	vacRepo := &repository.VacancyRepository{DB: pool}
 	candRepo := &repository.CandidateRepository{DB: pool}
 	authRepo := &repository.AuthRepository{DB: pool}
@@ -50,6 +51,9 @@ func main() {
 	candHandler := &handlers.CandidateHandler{Repo: candRepo}
 	authHandler := &handlers.AuthHandler{Repo: authRepo}
 	portalHandler := &handlers.CandidatePortalHandler{Repo: portalRepo}
+
+	templateRepo := &repository.TemplateRepository{DB: pool}
+	templateHandler := &handlers.TemplateHandler{Repo: templateRepo}
 
 	// 4. Настройка Gin
 	r := gin.Default()
@@ -74,6 +78,14 @@ func main() {
 		auth.POST("/recruiter/signup", authHandler.RecruiterSignup)
 		auth.POST("/candidate/signup", authHandler.CandidateSignup)
 		auth.POST("/login", authHandler.Login)
+	}
+
+	tGroup := r.Group("/templates")
+	{
+		tGroup.POST("", templateHandler.CreateTemplate)
+		tGroup.GET("", templateHandler.ListTemplates)
+		tGroup.PUT("/:id", templateHandler.UpdateTemplate)
+		tGroup.DELETE("/:id", templateHandler.DeleteTemplate)
 	}
 
 	// Зона 2: Вакансии
