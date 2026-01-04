@@ -12,6 +12,10 @@ type CandidatePortalRepository struct {
 	DB *pgxpool.Pool
 }
 
+func NewCandidatePortalRepository(conn *pgxpool.Pool) *CandidatePortalRepository {
+	return &CandidatePortalRepository{conn}
+}
+
 // UC-C2: Создание или получение профиля кандидата
 func (r *CandidatePortalRepository) UpsertCandidate(ctx context.Context, c models.Candidate) (string, error) {
 	var id string
@@ -24,14 +28,56 @@ func (r *CandidatePortalRepository) UpsertCandidate(ctx context.Context, c model
 	return id, err
 }
 
-// UC-C3: Сохранение отклика
-func (r *CandidatePortalRepository) CreateApplication(c context.Context, app models.Application) (string, error) {
-	var id string
-	query := `INSERT INTO applications (vacancy_id, candidate_id, status, ai_score) VALUES ($1, $2, $3, $4) RETURNING id`
-	err := r.DB.QueryRow(c, query, app.VacancyID, app.CandidateID, "На рассмотрении ИИ", app.AIScore).Scan(&id)
-	return id, err
-}
+// CreateApplication сохраняет данные в транзакции и возвращает ID
+func (r *CandidatePortalRepository) CreateApplication(ctx context.Context, app models.Application, ai models.ResumeData) (string, error) {
+	// Начинаем транзакцию
+	tx, err := r.DB.Begin(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback(ctx)
 
+	// 1. Вставляем в applications (теперь с ai_score)
+	queryApp := `INSERT INTO applications (id, vacancy_id, candidate_id, status, ai_score, applied_at) 
+                 VALUES ($1, $2, $3, $4, $5, NOW())`
+	
+	_, err = tx.Exec(ctx, queryApp, 
+		app.ID, 
+		app.VacancyID, 
+		app.CandidateID, 
+		app.Status, 
+		ai.AIScore, // Передаем процент совместимости сюда
+	)
+	if err != nil {
+		return "", err
+	}
+
+	// 2. Вставляем остальные детали анализа в resume_data
+	// Убедись, что в resume_data у тебя нет дублирующей колонки ai_score, если она не нужна
+	queryResume := `INSERT INTO resume_data (
+                        application_id, 
+                        ai_verdict, 
+                        parsed_text, 
+                        skills_detected
+                    ) VALUES ($1, $2, $3, $4)`
+	
+	_, err = tx.Exec(ctx, queryResume, 
+		app.ID, 
+		ai.AIVerdict, 
+		ai.ParsedText, 
+		ai.SkillsDetected,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	// Фиксируем транзакцию
+	if err := tx.Commit(ctx); err != nil {
+		return "", err
+	}
+
+	return app.ID, nil
+}
 // UC-C3: Сохранение результатов парсинга
 func (r *CandidatePortalRepository) SaveResumeData(c context.Context, data models.ResumeData) error {
 	query := `INSERT INTO resume_data (application_id, ai_verdict, parsed_text, skills_detected) VALUES ($1, $2, $3, $4)`
@@ -99,4 +145,11 @@ func (r *CandidatePortalRepository) GetByShortLink(link string) (models.Vacancy,
         &v.ID, &v.Title, &v.AIFilters, &v.ShortLink,
     )
     return v, err
+}
+
+func (r *CandidatePortalRepository) GetVacancyByID(ctx context.Context, id string) (*models.Vacancy, error) {
+    var v models.Vacancy
+    query := `SELECT id, ai_filters FROM vacancies WHERE id = $1`
+    err := r.DB.QueryRow(ctx, query, id).Scan(&v.ID, &v.AIFilters)
+    return &v, err
 }

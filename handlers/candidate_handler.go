@@ -14,7 +14,9 @@ type CandidateHandler struct {
 	Repo *repository.CandidateRepository
 }
 
-
+func NewCandidateHandler(CandRepo *repository.CandidateRepository) *CandidateHandler {
+	return &CandidateHandler{CandRepo}
+}
 
 // UpdateStatus godoc
 // @Summary      Изменение статуса заявки

@@ -11,6 +11,10 @@ type TemplateHandler struct {
 	Repo *repository.TemplateRepository
 }
 
+func NewTemplateHandler(TempRepo *repository.TemplateRepository) *TemplateHandler {
+	return &TemplateHandler{TempRepo}
+}
+
 // CreateTemplate godoc
 // @Summary      Создать шаблон сообщения
 // @Tags         templates

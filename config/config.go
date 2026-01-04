@@ -3,6 +3,7 @@ package config
 var Config *MapConfig
 
 type MapConfig struct {
-	AppHost                  string        `mapstructure:"APP_HOST"`
-	DbConnectionString       string        `mapstructure:"DB_CONNECTION_STRING"`
+	AppHost            string `mapstructure:"APP_HOST"`
+	DbConnectionString string `mapstructure:"DB_CONNECTION_STRING"`
+	AI_Key             string `mapstructure:"AI_KEY"`
 }

@@ -1,8 +1,11 @@
 module AI_recruit
 
-go 1.24.0
+go 1.24.1
+
+toolchain go1.24.11
 
 require (
+	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.46.0
 )
@@ -70,7 +73,9 @@ require (
 
 require (
 	github.com/gin-gonic/gin v1.11.0
+	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.8.0
+	github.com/sashabaranov/go-openai v1.41.2
 	github.com/spf13/viper v1.21.0
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.1

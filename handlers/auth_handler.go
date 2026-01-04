@@ -11,6 +11,10 @@ type AuthHandler struct {
 	Repo *repository.AuthRepository
 }
 
+func NewAuthHandler(AuthRepo *repository.AuthRepository) *AuthHandler {
+	return &AuthHandler{AuthRepo}
+}
+
 // Хеширование пароля
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

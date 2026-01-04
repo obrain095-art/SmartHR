@@ -12,6 +12,10 @@ type AuthRepository struct {
 	DB *pgxpool.Pool
 }
 
+func NewAuthRepository(conn *pgxpool.Pool) *AuthRepository {
+	return &AuthRepository{conn}
+}
+
 // Регистрация рекрутера
 func (r *AuthRepository) CreateRecruiter(c context.Context, email, password, company string) (string, error) {
 	var id string

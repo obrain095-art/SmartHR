@@ -1,58 +1,102 @@
 package handlers
 
 import (
-	"AI_recruit/repository"
 	"AI_recruit/models"
+	"AI_recruit/repository"
+	"AI_recruit/services"
+	"fmt"
 	"net/http"
+	"os"
+
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type CandidatePortalHandler struct {
 	Repo *repository.CandidatePortalRepository
+	AIService *services.AIService
 }
 
+func NewCandidatePortalHandler(CandPortRepo *repository.CandidatePortalRepository, AIService *services.AIService) *CandidatePortalHandler {
+	return &CandidatePortalHandler{CandPortRepo, AIService}
+}
 
-// Apply godoc
-// @Summary Подача отклика
-// @Description Создает отклик и запись в RESUME_DATA (ИИ-анализ)
+// @Summary Подать отклик на вакансию
+// @Description Загружает PDF, получает описание вакансии из БД, анализирует ИИ и сохраняет результат
 // @Tags portal
-// @Accept x-www-form-urlencoded
+// @Accept multipart/form-data
 // @Produce json
 // @Param candidate_id formData string true "ID кандидата"
 // @Param vacancy_id formData string true "ID вакансии"
-// @Success 201 {object} map[string]interface{} "Успешный отклик и ID заявки"
+// @Param resume formData file true "Резюме PDF"
 // @Router /applications [post]
-func (h *CandidatePortalHandler) Apply(c *gin.Context) {
+func (h *CandidatePortalHandler)  Apply(c *gin.Context) {
 	candidateID := c.PostForm("candidate_id")
 	vacancyID := c.PostForm("vacancy_id")
 
-	// 1. Создаем основной отклик
-	appID, err := h.Repo.CreateApplication(c, models.Application{
+	// 1. Проверяем наличие файла
+	file, err := c.FormFile("resume")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл не прикреплен"})
+		return
+	}
+
+	// 2. РЕАЛЬНОЕ ПОЛУЧЕНИЕ ВАКАНСИИ
+	// Мы должны знать требования, чтобы ИИ мог сравнить их с резюме
+	vacancy, err := h.Repo.GetVacancyByID(c.Request.Context(), vacancyID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Вакансия не найдена"})
+		return
+	}
+	// Используем реальные требования из БД (например, поле Description или Requirements)
+	vacDesc := vacancy.AIFilters
+
+	// 3. Временное сохранение для парсинга
+	tempPath := fmt.Sprintf("./temp_%s.pdf", uuid.New().String())
+	if err := c.SaveUploadedFile(file, tempPath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сохранения файла на сервере"})
+		return
+	}
+	defer os.Remove(tempPath)
+
+	// 4. Реальный анализ ИИ
+	// Сервис извлекает текст из PDF и отправляет его в OpenAI вместе с vacDesc
+	aiData, err := h.AIService.AnalyzeResume(tempPath, vacDesc)
+	if err != nil {
+		// Если ИИ не смог прочитать текст, возвращаем ошибку соискателю (как договорились ранее)
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": fmt.Sprintf("Анализ не удался: %v", err)})
+		return
+	}
+
+	// 5. Сохранение в БД (Атомарная транзакция)
+	appID := uuid.New().String()
+	app := models.Application{
+		ID:          appID,
 		VacancyID:   vacancyID,
 		CandidateID: candidateID,
-		AIScore:     85, // Пример оценки от ИИ
-	})
+		Status:      "New",
+	}
+	
+	// Привязываем вердикт к ID заявки
+	aiData.ApplicationID = appID
+
+	createdID, err := h.Repo.CreateApplication(c.Request.Context(), app, *aiData)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create application"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сохранения в БД"})
 		return
 	}
 
-	// 2. ЗАПОЛНЯЕМ ТАБЛИЦУ RESUME_DATA
-	resumeInfo := models.ResumeData{
-		ApplicationID:  appID,
-		AIVerdict:      "Кандидат идеально подходит по стеку технологий.",
-		ParsedText:     "Опыт работы 5 лет, знание Go, PostgreSQL, Docker.",
-		SkillsDetected: "Go, SQL, Docker, Gin",
-	}
-
-	if err := h.Repo.SaveResumeData(c, resumeInfo); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save AI analysis"})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"status": "success", "app_id": appID})
+	// 6. Успешный ответ
+	c.JSON(http.StatusCreated, gin.H{
+		"status": "success",
+		"app_id": createdID,
+		"ai": gin.H{
+			"score":   aiData.AIScore,
+			"verdict": aiData.AIVerdict,
+			"skills":  aiData.SkillsDetected,
+		},
+	})
 }
-
 
 // MyApplications godoc
 // @Summary Мои отклики
@@ -90,14 +134,14 @@ func (h *CandidatePortalHandler) MyApplications(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Вакансия не найдена"
 // @Router /vacancies/link/{short_link} [get]
 func (h *CandidatePortalHandler) ViewVacancy(c *gin.Context) {
-    shortLink := c.Param("short_link")
-    
-    // В базе ищем по полю short_link
-    vacancy, err := h.Repo.GetByShortLink(shortLink)
-    if err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"error": "Вакансия не найдена или перемещена в архив"})
-        return
-    }
+	shortLink := c.Param("short_link")
 
-    c.JSON(http.StatusOK, vacancy)
+	// В базе ищем по полю short_link
+	vacancy, err := h.Repo.GetByShortLink(shortLink)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Вакансия не найдена или перемещена в архив"})
+		return
+	}
+
+	c.JSON(http.StatusOK, vacancy)
 }

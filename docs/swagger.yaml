@@ -67,8 +67,9 @@ paths:
   /applications:
     post:
       consumes:
-      - application/x-www-form-urlencoded
-      description: Создает отклик и запись в RESUME_DATA (ИИ-анализ)
+      - multipart/form-data
+      description: Загружает PDF, получает описание вакансии из БД, анализирует ИИ
+        и сохраняет результат
       parameters:
       - description: ID кандидата
         in: formData
@@ -80,15 +81,15 @@ paths:
         name: vacancy_id
         required: true
         type: string
+      - description: Резюме PDF
+        in: formData
+        name: resume
+        required: true
+        type: file
       produces:
       - application/json
-      responses:
-        "201":
-          description: Успешный отклик и ID заявки
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Подача отклика
+      responses: {}
+      summary: Подать отклик на вакансию
       tags:
       - portal
   /applications/{id}/ai-data:

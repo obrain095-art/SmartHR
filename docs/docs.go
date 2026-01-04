@@ -17,9 +17,9 @@ const docTemplate = `{
     "paths": {
         "/applications": {
             "post": {
-                "description": "Создает отклик и запись в RESUME_DATA (ИИ-анализ)",
+                "description": "Загружает PDF, получает описание вакансии из БД, анализирует ИИ и сохраняет результат",
                 "consumes": [
-                    "application/x-www-form-urlencoded"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -27,7 +27,7 @@ const docTemplate = `{
                 "tags": [
                     "portal"
                 ],
-                "summary": "Подача отклика",
+                "summary": "Подать отклик на вакансию",
                 "parameters": [
                     {
                         "type": "string",
@@ -42,17 +42,16 @@ const docTemplate = `{
                         "name": "vacancy_id",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Резюме PDF",
+                        "name": "resume",
+                        "in": "formData",
+                        "required": true
                     }
                 ],
-                "responses": {
-                    "201": {
-                        "description": "Успешный отклик и ID заявки",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
+                "responses": {}
             }
         },
         "/applications/{id}/ai-data": {

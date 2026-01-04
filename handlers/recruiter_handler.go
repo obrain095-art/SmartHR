@@ -8,7 +8,11 @@ import (
 )
 
 type RecruiterHandler struct {
-	Repo *repository.VacancyRepository
+	Repo *repository.RecruiterRepository
+}
+
+func NewRecruiterHandler(RecRepo *repository.RecruiterRepository) *RecruiterHandler {
+	return &RecruiterHandler{RecRepo}
 }
 
 // CreateVacancy godoc

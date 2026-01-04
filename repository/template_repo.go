@@ -10,6 +10,10 @@ type TemplateRepository struct {
 	DB *pgxpool.Pool
 }
 
+func NewTemplateRepository(conn *pgxpool.Pool) *TemplateRepository {
+	return &TemplateRepository{conn}
+}
+
 func (r *TemplateRepository) Create(ctx context.Context, t models.MessageTemplate) error {
 	query := `INSERT INTO message_templates (recruiter_id, title, body_text) VALUES ($1, $2, $3)`
 	_, err := r.DB.Exec(ctx, query, t.RecruiterID, t.Title, t.BodyText)

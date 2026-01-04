@@ -8,12 +8,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type VacancyRepository struct {
+type RecruiterRepository struct {
 	DB *pgxpool.Pool
 }
 
+func NewRecruiterRepository(conn *pgxpool.Pool) *RecruiterRepository {
+	return &RecruiterRepository{conn}
+}
+
 // GET /vacancies/{id}/applications
-func (r *VacancyRepository) GetApplications(c context.Context, vacancyID string) ([]models.Application, error) {
+func (r *RecruiterRepository) GetApplications(c context.Context, vacancyID string) ([]models.Application, error) {
 	query := `
 		SELECT 
 			a.id, 
@@ -48,7 +52,7 @@ func (r *VacancyRepository) GetApplications(c context.Context, vacancyID string)
 }
 
 // PATCH /vacancies/{id}/archive
-func (r *VacancyRepository) Archive(c context.Context, id string) error {
+func (r *RecruiterRepository) Archive(c context.Context, id string) error {
 	query := `UPDATE vacancies SET is_archived = true WHERE id = $1`
 	result, err := r.DB.Exec(c, query, id)
 	if err != nil {
@@ -63,7 +67,7 @@ func (r *VacancyRepository) Archive(c context.Context, id string) error {
 }
 
 // Создание вакансии (теперь соответствует вызову в хендлере)
-func (r *VacancyRepository) Create(c context.Context, v models.VacancyCreateRequest) error {
+func (r *RecruiterRepository) Create(c context.Context, v models.VacancyCreateRequest) error {
 	query := `INSERT INTO vacancies (recruiter_id, title, ai_filters, short_link, is_archived) 
               VALUES ($1, $2, $3, $4, $5)`
 	_, err := r.DB.Exec(c, query, v.RecruiterID, v.Title, v.AIFilters, v.ShortLink, false)
@@ -71,7 +75,7 @@ func (r *VacancyRepository) Create(c context.Context, v models.VacancyCreateRequ
 }
 
 // GetActive возвращает только неархивированные вакансии
-func (r *VacancyRepository) GetActive(c context.Context) ([]models.Vacancy, error) {
+func (r *RecruiterRepository) GetActive(c context.Context) ([]models.Vacancy, error) {
 	query := `SELECT id, recruiter_id, title, ai_filters, short_link, is_archived 
               FROM vacancies WHERE is_archived = false`
 
@@ -92,3 +96,4 @@ func (r *VacancyRepository) GetActive(c context.Context) ([]models.Vacancy, erro
 	}
 	return vacancies, nil
 }
+

@@ -12,6 +12,10 @@ type CandidateRepository struct {
 	DB *pgxpool.Pool
 }
 
+func NewCandidateRepository(conn *pgxpool.Pool) *CandidateRepository {
+	return &CandidateRepository{conn}
+}
+
 // UC-3: Получение списка талантов с AI-скорингом
 func (r *CandidateRepository) GetApplicationsByVacancy(c context.Context, vacancyID string) ([]models.Application, error) {
 	query := `SELECT id, vacancy_id, candidate_id, status, ai_score, applied_at 
