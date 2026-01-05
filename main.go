@@ -38,19 +38,31 @@ func main() {
 	// 4. Настройка Gin
 	r := gin.Default()
 
-	handlers.SetupRoutes(r, conn)
+	
 
 	// Настройка CORS
 	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PATCH, DELETE")
+		origin := c.Request.Header.Get("Origin")
+
+		// Разрешаем только нужные фронты
+		if origin == "https://ai-recruiting-frontend.onrender.com" {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+			c.Writer.Header().Set("Vary", "Origin") // чтобы браузеры кэш правильно делали
+		}
+
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
 			return
 		}
+
 		c.Next()
 	})
+	
+	handlers.SetupRoutes(r, conn)
 
 	// 6. Запуск сервера
 	l.Info("Сервер запущен на порту :8080")
