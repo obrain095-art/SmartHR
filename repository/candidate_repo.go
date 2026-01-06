@@ -20,18 +20,18 @@ func NewCandidateRepository(conn *pgxpool.Pool) *CandidateRepository {
 // UC-3: Получение списка заявок по ID вакансии
 func (r *CandidateRepository) GetApplicationsByVacancy(c context.Context, vacancyID string) ([]models.Application, error) {
 	query := `
-		SELECT 
-            a.id::text,          -- Добавляем ::text для UUID
-            a.vacancy_id::text,  -- Добавляем ::text
-            a.candidate_id::text, -- Добавляем ::text
-            c.telegram_username, 
-            a.status, 
-            a.ai_score, 
-            a.applied_at 
-        FROM applications a
-        JOIN candidates c ON a.candidate_id = c.id
-        WHERE a.vacancy_id = $1 
-        ORDER BY a.ai_score DESC`
+    SELECT 
+        a.id::text,          -- ПРИВЕДЕНИЕ К ТЕКСТУ
+        a.vacancy_id::text,  -- ПРИВЕДЕНИЕ К ТЕКСТУ
+        a.candidate_id::text, 
+        c.telegram_username, 
+        a.status, 
+        a.ai_score, 
+        a.applied_at 
+    FROM applications a
+    JOIN candidates c ON a.candidate_id = c.id
+    WHERE a.vacancy_id = $1 
+    ORDER BY a.ai_score DESC`
 
 	rows, err := r.DB.Query(c, query, vacancyID)
 	if err != nil {
@@ -58,10 +58,17 @@ func (r *CandidateRepository) GetApplicationsByVacancy(c context.Context, vacanc
 // Получение полной информации по одной заявке (ID заявки)
 func (r *CandidateRepository) GetApplicationByID(c context.Context, appID string) (*models.Application, error) {
 	query := `
-		SELECT a.id, a.vacancy_id, a.candidate_id, c.telegram_username, a.status, a.ai_score, a.applied_at 
-        FROM applications a
-        JOIN candidates c ON a.candidate_id = c.id
-        WHERE a.id = $1`
+    SELECT 
+        a.id::text, 
+        a.vacancy_id::text, 
+        a.candidate_id::text, 
+        c.telegram_username, 
+        a.status, 
+        a.ai_score, 
+        a.applied_at 
+    FROM applications a
+    JOIN candidates c ON a.candidate_id = c.id
+    WHERE a.id = $1`
 
 	var a models.Application
 	err := r.DB.QueryRow(c, query, appID).Scan(
