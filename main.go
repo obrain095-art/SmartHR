@@ -27,6 +27,10 @@ func main() {
 		l.Fatal("Failed to load config", zap.Error(err))
 	}
 
+	l.Info("Проверка ключа:", zap.String("ai_key", config.Config.AI_Key))
+	l.Info("Проверка ключа:", zap.String("DB_string", config.Config.DbConnectionString))
+	l.Info("Проверка ключа:", zap.String("host", config.Config.AppHost))
+
 	// 2. Подключение к БД
 	conn, err := connectToDb()
 	if err != nil {
