@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"AI_recruit/docs"
+	"AI_recruit/logger"
 	"AI_recruit/repository"
 	"AI_recruit/services"
 
@@ -10,9 +11,11 @@ import (
 	"github.com/sashabaranov/go-openai"
 	swaggerfiles "github.com/swaggo/files"
 	swagger "github.com/swaggo/gin-swagger"
+	"go.uber.org/zap"
 )
 
 func SetupRoutes(r *gin.Engine, conn *pgxpool.Pool, AI_KEY string) {
+	logger := logger.GetLogger()
 
 	recRepo := repository.NewVacancyRepository(conn)
 	authRepo := repository.NewAuthRepository(conn)
@@ -20,6 +23,7 @@ func SetupRoutes(r *gin.Engine, conn *pgxpool.Pool, AI_KEY string) {
 	candRepo := repository.NewCandidateRepository(conn)
 
 	aiClient := openai.NewClient(AI_KEY)
+	logger.Info("Проверка ключа:", zap.String("ai_key", AI_KEY))
 	Ai_service := &services.AIService{Client: aiClient}
 
 	recHandler := NewVacancyHandler(recRepo)
