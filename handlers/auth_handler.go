@@ -100,42 +100,20 @@ func (h *AuthHandler) CandidateSignup(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"token": "jwt_token_here", "candidate_id": id})
 }
 
-// Login godoc
-// @Summary      Вход в систему
-// @Description  Проверяет учетные данные пользователя. Сравнивает введенный пароль с хешем в базе данных.
-// @Tags         auth
-// @Accept       json
-// @Produce      json
-// @Param        input    body      object{email=string,password=string}  true  "Учетные данные пользователя"
-// @Success      200      {object}  map[string]string "Данные пользователя: { 'id': '...', 'email': '...' }"
-// @Failure      401      {object}  map[string]string "Ошибка: Неверный логин или пароль"
-// @Router       /auth/login [post]
-func (h *AuthHandler) Login(c *gin.Context) {
-	var input struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
-		return
-	}
-
-	// В методе Login мы передаем ЧИСТЫЙ пароль, 
-	// так как проверка хеша будет внутри репозитория
-	user, err := h.Repo.Authenticate(c, input.Email, input.Password)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
-		return
-	}
-
-	c.JSON(http.StatusOK, user)
-}
-
 
 
 
 // RecruiterLogin godoc
-// @Router /auth/recruiter/login [post]
+// @Summary      Вход для рекрутера
+// @Description  Аутентификация пользователя как рекрутера. Проверяет email и пароль в таблице recruiters.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input    body      object{email=string,password=string}  true  "Учетные данные рекрутера"
+// @Success      200      {object}  map[string]string "Данные: { 'id': '...', 'email': '...', 'role': 'recruiter', 'company_name': '...' }"
+// @Failure      400      {object}  map[string]string "Ошибка: Неверный формат входных данных"
+// @Failure      401      {object}  map[string]string "Ошибка: Неверный email или пароль"
+// @Router       /auth/recruiter/login [post]
 func (h *AuthHandler) RecruiterLogin(c *gin.Context) {
 	var input struct {
 		Email    string `json:"email"`
@@ -155,7 +133,16 @@ func (h *AuthHandler) RecruiterLogin(c *gin.Context) {
 }
 
 // CandidateLogin godoc
-// @Router /auth/candidate/login [post]
+// @Summary      Вход для соискателя
+// @Description  Аутентификация пользователя как кандидата. Проверяет email и пароль в таблице candidates.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input    body      object{email=string,password=string}  true  "Учетные данные соискателя"
+// @Success      200      {object}  map[string]string "Данные: { 'id': '...', 'email': '...', 'role': 'candidate', 'telegram_username': '...' }"
+// @Failure      400      {object}  map[string]string "Ошибка: Неверный формат входных данных"
+// @Failure      401      {object}  map[string]string "Ошибка: Неверный email или пароль"
+// @Router       /auth/candidate/login [post]
 func (h *AuthHandler) CandidateLogin(c *gin.Context) {
 	var input struct {
 		Email    string `json:"email"`

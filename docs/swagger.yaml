@@ -187,6 +187,49 @@ paths:
       summary: Изменение статуса заявки
       tags:
       - applications
+  /auth/candidate/login:
+    post:
+      consumes:
+      - application/json
+      description: Аутентификация пользователя как кандидата. Проверяет email и пароль
+        в таблице candidates.
+      parameters:
+      - description: Учетные данные соискателя
+        in: body
+        name: input
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            password:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Данные: { ''id'': ''...'', ''email'': ''...'', ''role'': ''candidate'',
+            ''telegram_username'': ''...'' }'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'Ошибка: Неверный формат входных данных'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'Ошибка: Неверный email или пароль'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Вход для соискателя
+      tags:
+      - auth
   /auth/candidate/signup:
     post:
       consumes:
@@ -231,14 +274,14 @@ paths:
       summary: Регистрация соискателя
       tags:
       - auth
-  /auth/login:
+  /auth/recruiter/login:
     post:
       consumes:
       - application/json
-      description: Проверяет учетные данные пользователя. Сравнивает введенный пароль
-        с хешем в базе данных.
+      description: Аутентификация пользователя как рекрутера. Проверяет email и пароль
+        в таблице recruiters.
       parameters:
-      - description: Учетные данные пользователя
+      - description: Учетные данные рекрутера
         in: body
         name: input
         required: true
@@ -253,19 +296,25 @@ paths:
       - application/json
       responses:
         "200":
-          description: 'Данные пользователя: { ''id'': ''...'', ''email'': ''...''
-            }'
+          description: 'Данные: { ''id'': ''...'', ''email'': ''...'', ''role'': ''recruiter'',
+            ''company_name'': ''...'' }'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'Ошибка: Неверный формат входных данных'
           schema:
             additionalProperties:
               type: string
             type: object
         "401":
-          description: 'Ошибка: Неверный логин или пароль'
+          description: 'Ошибка: Неверный email или пароль'
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Вход в систему
+      summary: Вход для рекрутера
       tags:
       - auth
   /auth/recruiter/signup:

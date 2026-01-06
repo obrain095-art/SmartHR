@@ -195,6 +195,69 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/candidate/login": {
+            "post": {
+                "description": "Аутентификация пользователя как кандидата. Проверяет email и пароль в таблице candidates.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Вход для соискателя",
+                "parameters": [
+                    {
+                        "description": "Учетные данные соискателя",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "email": {
+                                    "type": "string"
+                                },
+                                "password": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Данные: { 'id': '...', 'email': '...', 'role': 'candidate', 'telegram_username': '...' }",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка: Неверный формат входных данных",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Ошибка: Неверный email или пароль",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/auth/candidate/signup": {
             "post": {
                 "description": "Создает аккаунт кандидата, сохраняя email и никнейм в Telegram для последующей связи.",
@@ -261,9 +324,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/login": {
+        "/auth/recruiter/login": {
             "post": {
-                "description": "Проверяет учетные данные пользователя. Сравнивает введенный пароль с хешем в базе данных.",
+                "description": "Аутентификация пользователя как рекрутера. Проверяет email и пароль в таблице recruiters.",
                 "consumes": [
                     "application/json"
                 ],
@@ -273,10 +336,10 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Вход в систему",
+                "summary": "Вход для рекрутера",
                 "parameters": [
                     {
-                        "description": "Учетные данные пользователя",
+                        "description": "Учетные данные рекрутера",
                         "name": "input",
                         "in": "body",
                         "required": true,
@@ -295,7 +358,16 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Данные пользователя: { 'id': '...', 'email': '...' }",
+                        "description": "Данные: { 'id': '...', 'email': '...', 'role': 'recruiter', 'company_name': '...' }",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка: Неверный формат входных данных",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -304,7 +376,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Ошибка: Неверный логин или пароль",
+                        "description": "Ошибка: Неверный email или пароль",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
