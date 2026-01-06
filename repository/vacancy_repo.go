@@ -104,8 +104,8 @@ func (r *VacancyRepository) GetInactive(c context.Context) ([]models.Vacancy, er
 
 // GetAll возвращает абсолютно все вакансии
 func (r *VacancyRepository) GetAll(c context.Context, id string) ([]models.Vacancy, error) {
-	query := `SELECT id, recruiter_id, title, ai_filters, short_link, is_archived 
-              FROM vacancies Where recruiter_id = $1`
+	query := `SELECT id::text, recruiter_id::text, title, ai_filters, short_link, is_archived 
+              FROM vacancies WHERE recruiter_id = $1`
 	return r.fetchVacancies(c, query, id)
 }
 

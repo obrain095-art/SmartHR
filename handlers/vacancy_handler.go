@@ -121,7 +121,13 @@ func (h *VacancyHandler) ListActiveVacancies(c *gin.Context) {
 // @Success 200 {array} models.Vacancy
 // @Router /vacancies/all [get]
 func (h *VacancyHandler) ListAllVacancies(c *gin.Context) {
-	recruiter_id := c.Param("recruiter_id")
+    // Используем Query вместо Param, так как в роуте нет :recruiter_id
+	recruiter_id := c.Query("id") 
+
+	if recruiter_id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
+		return
+	}
 
 	vacancies, err := h.Repo.GetAll(c, recruiter_id)
 	if err != nil {
