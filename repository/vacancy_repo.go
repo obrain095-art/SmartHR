@@ -52,33 +52,33 @@ func (r *VacancyRepository) GetApplications(c context.Context, vacancyID string)
 	return apps, nil
 }
 
-// Archive архивирует вакансию
-func (r *VacancyRepository) Archive(c context.Context, id string) error {
-	query := `UPDATE vacancies SET is_archived = true WHERE id = $1`
-	result, err := r.DB.Exec(c, query, id)
-	if err != nil {
-		return err
+	// Archive архивирует вакансию
+	func (r *VacancyRepository) Archive(c context.Context, id string) error {
+		query := `UPDATE vacancies SET is_archived = true WHERE id = $1`
+		result, err := r.DB.Exec(c, query, id)
+		if err != nil {
+			return err
+		}
+
+		if result.RowsAffected() == 0 {
+			return errors.New("not found")
+		}
+		return nil
 	}
 
-	if result.RowsAffected() == 0 {
-		return errors.New("not found")
-	}
-	return nil
-}
+	// DeArchive разархивирует вакансию
+	func (r *VacancyRepository) DeArchive(c context.Context, id string) error {
+		query := `UPDATE vacancies SET is_archived = false WHERE id = $1`
+		result, err := r.DB.Exec(c, query, id)
+		if err != nil {
+			return err
+		}
 
-// DeArchive разархивирует вакансию
-func (r *VacancyRepository) DeArchive(c context.Context, id string) error {
-	query := `UPDATE vacancies SET is_archived = false WHERE id = $1`
-	result, err := r.DB.Exec(c, query, id)
-	if err != nil {
-		return err
+		if result.RowsAffected() == 0 {
+			return errors.New("not found")
+		}
+		return nil
 	}
-
-	if result.RowsAffected() == 0 {
-		return errors.New("not found")
-	}
-	return nil
-}
 
 // Create создает вакансию
 func (r *VacancyRepository) Create(c context.Context, v models.VacancyCreateRequest) error {
