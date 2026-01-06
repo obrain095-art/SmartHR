@@ -49,11 +49,12 @@ func SetupRoutes(r *gin.Engine, conn *pgxpool.Pool, AI_KEY string) {
 	r.POST("/templates/:id/generate", candHandler.GenerateTelegramText) //рекрутеры
 
 	auth := r.Group("/auth")
-	{
-		auth.POST("/recruiter/signup", authHandler.RecruiterSignup) //все
-		auth.POST("/candidate/signup", authHandler.CandidateSignup) //все
-		auth.POST("/login", authHandler.Login)                      //все
-	}
+{
+    auth.POST("/recruiter/signup", authHandler.RecruiterSignup)
+    auth.POST("/recruiter/login", authHandler.RecruiterLogin) // Новый
+    auth.POST("/candidate/signup", authHandler.CandidateSignup)
+    auth.POST("/candidate/login", authHandler.CandidateLogin) // Новый
+}
 
 	tGroup := r.Group("/templates")
 	{

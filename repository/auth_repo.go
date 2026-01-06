@@ -62,3 +62,46 @@ func (r *AuthRepository) Authenticate(ctx context.Context, email, password strin
 }
 
 
+// AuthenticateRecruiter проверяет данные в таблице recruiters
+func (r *AuthRepository) AuthenticateRecruiter(ctx context.Context, email, password string) (map[string]string, error) {
+	var id, hashedPassword, company string
+	query := `SELECT id, password_hash, company_name FROM recruiters WHERE email = $1`
+	err := r.DB.QueryRow(ctx, query, email).Scan(&id, &hashedPassword, &company)
+	if err != nil {
+		return nil, errors.New("recruiter not found")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password)); err != nil {
+		return nil, errors.New("invalid password")
+	}
+
+	return map[string]string{
+		"id":           id,
+		"email":        email,
+		"role":         "recruiter",
+		"company_name": company,
+	}, nil
+}
+
+// AuthenticateCandidate проверяет данные в таблице candidates
+func (r *AuthRepository) AuthenticateCandidate(ctx context.Context, email, password string) (map[string]string, error) {
+	var id, hashedPassword, tg string
+	query := `SELECT id, password_hash, telegram_username FROM candidates WHERE email = $1`
+	err := r.DB.QueryRow(ctx, query, email).Scan(&id, &hashedPassword, &tg)
+	if err != nil {
+		return nil, errors.New("candidate not found")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password)); err != nil {
+		return nil, errors.New("invalid password")
+	}
+
+	return map[string]string{
+		"id":                id,
+		"email":             email,
+		"role":              "candidate",
+		"telegram_username": tg,
+	}, nil
+}
+
+
