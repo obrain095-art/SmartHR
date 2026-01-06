@@ -20,7 +20,14 @@ func NewCandidateRepository(conn *pgxpool.Pool) *CandidateRepository {
 // UC-3: Получение списка заявок по ID вакансии
 func (r *CandidateRepository) GetApplicationsByVacancy(c context.Context, vacancyID string) ([]models.Application, error) {
 	query := `
-		SELECT a.id, a.vacancy_id, a.candidate_id, c.telegram_username, a.status, a.ai_score, a.applied_at 
+		SELECT 
+            a.id::text,          -- Добавляем ::text для UUID
+            a.vacancy_id::text,  -- Добавляем ::text
+            a.candidate_id::text, -- Добавляем ::text
+            c.telegram_username, 
+            a.status, 
+            a.ai_score, 
+            a.applied_at 
         FROM applications a
         JOIN candidates c ON a.candidate_id = c.id
         WHERE a.vacancy_id = $1 
@@ -72,29 +79,21 @@ func (r *CandidateRepository) GetApplicationByID(c context.Context, appID string
 // GetResumeAnalysis собирает полный отчет ИИ по ID отклика
 func (r *CandidateRepository) GetResumeAnalysis(c context.Context, appID string) (models.ResumeData, error) {
 	var res models.ResumeData
-
-	// Используем JOIN, так как скоринг хранится в applications, а текст в resume_data
 	query := `
-		SELECT r.id, r.application_id, r.ai_verdict, r.parsed_text, r.skills_detected, a.ai_score
+		SELECT 
+            r.id::text, 
+            r.application_id::text, 
+            r.ai_verdict, 
+            r.parsed_text, 
+            r.skills_detected, 
+            a.ai_score
 		FROM resume_data r
 		JOIN applications a ON r.application_id = a.id
 		WHERE r.application_id = $1`
 
 	err := r.DB.QueryRow(c, query, appID).Scan(
-		&res.ID,
-		&res.ApplicationID,
-		&res.AIVerdict,
-		&res.ParsedText,
-		&res.SkillsDetected,
-		&res.AIScore,
+		&res.ID, &res.ApplicationID, &res.AIVerdict, &res.ParsedText, &res.SkillsDetected, &res.AIScore,
 	)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.ResumeData{}, errors.New("analysis not found")
-		}
-		return models.ResumeData{}, err
-	}
-
 	return res, err
 }
 

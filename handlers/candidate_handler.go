@@ -107,10 +107,12 @@ func (h *CandidateHandler) GetAIData(c *gin.Context) {
 		return
 	}
 
+	// Добавляем skills_detected в ответ!
 	c.JSON(http.StatusOK, gin.H{
-		"ai_verdict":  aiData.AIVerdict,
-		"ai_score":    aiData.AIScore,
-		"parsed_text": aiData.ParsedText,
+		"ai_verdict":      aiData.AIVerdict,
+		"ai_score":        aiData.AIScore,
+		"parsed_text":     aiData.ParsedText,
+		"skills_detected": aiData.SkillsDetected, // Добавлено
 	})
 }
 
