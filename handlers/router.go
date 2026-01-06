@@ -15,7 +15,7 @@ import (
 
 func SetupRoutes(r *gin.Engine, conn *pgxpool.Pool) {
 
-	recRepo := repository.NewRecruiterRepository(conn)
+	recRepo := repository.NewVacancyRepository(conn)
 	authRepo := repository.NewAuthRepository(conn)
 	portalRepo := repository.NewCandidatePortalRepository(conn)
 	candRepo := repository.NewCandidateRepository(conn)
@@ -23,8 +23,7 @@ func SetupRoutes(r *gin.Engine, conn *pgxpool.Pool) {
 	aiClient := openai.NewClient(config.Config.AI_Key)
 	Ai_service := &services.AIService{Client: aiClient}
 
-
-	recHandler := NewRecruiterHandler(recRepo)
+	recHandler := NewVacancyHandler(recRepo)
 	candHandler := NewCandidateHandler(candRepo)
 	authHandler := NewAuthHandler(authRepo)
 	portalHandler := NewCandidatePortalHandler(portalRepo, Ai_service)
@@ -32,41 +31,47 @@ func SetupRoutes(r *gin.Engine, conn *pgxpool.Pool) {
 	templateRepo := repository.NewTemplateRepository(conn)
 	templateHandler := NewTemplateHandler(templateRepo)
 
-	r.POST("/applications", portalHandler.Apply)
-	r.GET("/my-applications", portalHandler.MyApplications)
+	r.POST("/applications", portalHandler.Apply)            //соискатели
+	r.GET("/my-applications", portalHandler.MyApplications) //соискатели
 
 	// Зона 4: AI Анализ и Статусы
 	apps := r.Group("/applications")
 	{
-		apps.GET("/:id/ai-data", candHandler.GetAIData)
-		apps.PATCH("/:id/status", candHandler.UpdateStatus)
+		apps.GET("/:id/vacancy", candHandler.GetApplicationDetails) //рекуретры
+		apps.GET("/:id", candHandler.GetListByVacancy)              //рекрутеры
+		apps.GET("/:id/ai-data", candHandler.GetAIData)             //рекрутеры
+		apps.PATCH("/:id/status", candHandler.UpdateStatus)         //рекрутеры
 	}
 
-	r.POST("/templates/:id/generate", candHandler.GenerateTelegramText)
+	r.POST("/templates/:id/generate", candHandler.GenerateTelegramText) //рекрутеры
 
 	auth := r.Group("/auth")
 	{
-		auth.POST("/recruiter/signup", authHandler.RecruiterSignup)
-		auth.POST("/candidate/signup", authHandler.CandidateSignup)
-		auth.POST("/login", authHandler.Login)
+		auth.POST("/recruiter/signup", authHandler.RecruiterSignup) //все
+		auth.POST("/candidate/signup", authHandler.CandidateSignup) //все
+		auth.POST("/login", authHandler.Login)                      //все
 	}
 
 	tGroup := r.Group("/templates")
 	{
-		tGroup.POST("", templateHandler.CreateTemplate)
-		tGroup.GET("", templateHandler.ListTemplates)
-		tGroup.PUT("/:id", templateHandler.UpdateTemplate)
-		tGroup.DELETE("/:id", templateHandler.DeleteTemplate)
+		tGroup.POST("", templateHandler.CreateTemplate)       // рекрутеры
+		tGroup.GET("", templateHandler.ListTemplates)         // рекрутеры
+		tGroup.PUT("/:id", templateHandler.UpdateTemplate)    // рекрутеры
+		tGroup.DELETE("/:id", templateHandler.DeleteTemplate) // рекрутеры
 	}
 	v := r.Group("/vacancies")
 	{
-		v.GET("", recHandler.ListActiveVacancies) // GET /vacancies
-		v.POST("", recHandler.CreateVacancy)      // POST /vacancies
-		v.PATCH("/:id/archive", recHandler.ArchiveVacancy)
-		v.GET("/:id/applications", recHandler.GetApplications)
+		v.GET("/all", recHandler.ListAllVacancies)             //рекрутеры
+		v.GET("/active", recHandler.ListActiveVacancies)       //все
+		v.GET("/inactive", recHandler.ListInactiveVacancies)   //рекрутеры
+		v.POST("", recHandler.CreateVacancy)                   //рекрутеры
+		v.GET("/:id", recHandler.ListOneVacancy)               //все
+		v.PATCH("/:id/archive", recHandler.ArchiveVacancy)     //рекрутеры
+		v.PATCH("/:id/dearchive", recHandler.DeArchiveVacancy) //рекрутеры
+		v.GET("/:id/applications", recHandler.GetApplications) //рекрутеры
 
 		// ИСПРАВЛЕНИЕ: Добавляем префикс /v/ для коротких ссылок, чтобы Gin не путал их с другими GET запросами
-		v.GET("/link/:short_link", portalHandler.ViewVacancy)
+		v.GET("/link/:short_link", portalHandler.ViewVacancy) //все
 	}
 	// Swagger
 	docs.SwaggerInfo.BasePath = "/"

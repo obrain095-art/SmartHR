@@ -5,19 +5,20 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type RecruiterRepository struct {
+type VacancyRepository struct {
 	DB *pgxpool.Pool
 }
 
-func NewRecruiterRepository(conn *pgxpool.Pool) *RecruiterRepository {
-	return &RecruiterRepository{conn}
+func NewVacancyRepository(conn *pgxpool.Pool) *VacancyRepository {
+	return &VacancyRepository{conn}
 }
 
-// GET /vacancies/{id}/applications
-func (r *RecruiterRepository) GetApplications(c context.Context, vacancyID string) ([]models.Application, error) {
+// GetApplications получает список откликов
+func (r *VacancyRepository) GetApplications(c context.Context, vacancyID string) ([]models.Application, error) {
 	query := `
 		SELECT 
 			a.id, 
@@ -41,7 +42,7 @@ func (r *RecruiterRepository) GetApplications(c context.Context, vacancyID strin
 	var apps []models.Application
 	for rows.Next() {
 		var a models.Application
-		// Сканируем данные, включая CandidateName (telegram_username)
+		// Сканируем данные
 		err := rows.Scan(&a.ID, &a.VacancyID, &a.CandidateID, &a.CandidateName, &a.Status, &a.AIScore, &a.AppliedAt)
 		if err != nil {
 			return nil, err
@@ -51,35 +52,82 @@ func (r *RecruiterRepository) GetApplications(c context.Context, vacancyID strin
 	return apps, nil
 }
 
-// PATCH /vacancies/{id}/archive
-func (r *RecruiterRepository) Archive(c context.Context, id string) error {
+// Archive архивирует вакансию
+func (r *VacancyRepository) Archive(c context.Context, id string) error {
 	query := `UPDATE vacancies SET is_archived = true WHERE id = $1`
 	result, err := r.DB.Exec(c, query, id)
 	if err != nil {
 		return err
 	}
 
-	rows := result.RowsAffected()
-	if rows == 0 {
+	if result.RowsAffected() == 0 {
 		return errors.New("not found")
 	}
 	return nil
 }
 
-// Создание вакансии (теперь соответствует вызову в хендлере)
-func (r *RecruiterRepository) Create(c context.Context, v models.VacancyCreateRequest) error {
+// DeArchive разархивирует вакансию
+func (r *VacancyRepository) DeArchive(c context.Context, id string) error {
+	query := `UPDATE vacancies SET is_archived = false WHERE id = $1`
+	result, err := r.DB.Exec(c, query, id)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return errors.New("not found")
+	}
+	return nil
+}
+
+// Create создает вакансию
+func (r *VacancyRepository) Create(c context.Context, v models.VacancyCreateRequest) error {
 	query := `INSERT INTO vacancies (recruiter_id, title, ai_filters, short_link, is_archived) 
               VALUES ($1, $2, $3, $4, $5)`
 	_, err := r.DB.Exec(c, query, v.RecruiterID, v.Title, v.AIFilters, v.ShortLink, false)
 	return err
 }
 
-// GetActive возвращает только неархивированные вакансии
-func (r *RecruiterRepository) GetActive(c context.Context) ([]models.Vacancy, error) {
+// GetActive возвращает только активные вакансии
+func (r *VacancyRepository) GetActive(c context.Context) ([]models.Vacancy, error) {
 	query := `SELECT id, recruiter_id, title, ai_filters, short_link, is_archived 
               FROM vacancies WHERE is_archived = false`
+	return r.fetchVacancies(c, query)
+}
 
-	rows, err := r.DB.Query(c, query)
+// GetInactive возвращает только заархивированные вакансии
+func (r *VacancyRepository) GetInactive(c context.Context) ([]models.Vacancy, error) {
+	query := `SELECT id, recruiter_id, title, ai_filters, short_link, is_archived 
+              FROM vacancies WHERE is_archived = true`
+	return r.fetchVacancies(c, query)
+}
+
+// GetAll возвращает абсолютно все вакансии
+func (r *VacancyRepository) GetAll(c context.Context, id string) ([]models.Vacancy, error) {
+	query := `SELECT id, recruiter_id, title, ai_filters, short_link, is_archived 
+              FROM vacancies Where recruiter_id = $1`
+	return r.fetchVacancies(c, query, id)
+}
+
+// GetByID возвращает одну вакансию по ID
+func (r *VacancyRepository) GetByID(c context.Context, id string) (*models.Vacancy, error) {
+	query := `SELECT id, recruiter_id, title, ai_filters, short_link, is_archived 
+              FROM vacancies WHERE id = $1`
+	
+	var v models.Vacancy
+	err := r.DB.QueryRow(c, query, id).Scan(&v.ID, &v.RecruiterID, &v.Title, &v.AIFilters, &v.ShortLink, &v.IsArchived)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errors.New("not found")
+		}
+		return nil, err
+	}
+	return &v, nil
+}
+
+// Вспомогательная функция для выборки списка вакансий
+func (r *VacancyRepository) fetchVacancies(c context.Context, query string, args ...interface{}) ([]models.Vacancy, error) {
+	rows, err := r.DB.Query(c, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -94,6 +142,9 @@ func (r *RecruiterRepository) GetActive(c context.Context) ([]models.Vacancy, er
 		}
 		vacancies = append(vacancies, v)
 	}
+	// Если пусто, возвращаем пустой слайс, а не nil (для удобства JSON)
+	if vacancies == nil {
+		vacancies = []models.Vacancy{}
+	}
 	return vacancies, nil
 }
-

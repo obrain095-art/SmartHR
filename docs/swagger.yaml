@@ -92,9 +92,35 @@ paths:
       summary: Подать отклик на вакансию
       tags:
       - portal
+  /applications/{id}:
+    get:
+      description: 'Возвращает подробную информацию о конкретном отклике по его ID.
+        (Маршрут: /:id, где id - это ID заявки)'
+      parameters:
+      - description: ID заявки (application_id)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Объект заявки
+          schema:
+            $ref: '#/definitions/models.Application'
+        "404":
+          description: Заявка не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Полная информация о заявке
+      tags:
+      - applications
   /applications/{id}/ai-data:
     get:
-      description: Получает вердикт, скоринг и распознанный текст из RESUME_DATA
+      description: Получает вердикт, скоринг и распознанный текст резюме
       parameters:
       - description: ID заявки (application_id)
         in: path
@@ -109,22 +135,28 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "404":
+          description: Данные не найдены
+          schema:
+            additionalProperties:
+              type: string
+            type: object
       summary: Результаты анализа ИИ
       tags:
-      - recruiter_tools
+      - applications
   /applications/{id}/status:
     patch:
       consumes:
       - application/json
       description: 'Обновляет статус конкретного отклика (например: ''Интервью'',
-        ''Оффер'', ''Отказ'') по его ID в URL.'
+        ''Оффер'', ''Отказ'') по его ID.'
       parameters:
       - description: ID заявки (application_id)
         in: path
         name: id
         required: true
         type: string
-      - description: Новый статус для установки
+      - description: Новый статус
         in: body
         name: input
         required: true
@@ -137,24 +169,24 @@ paths:
       - application/json
       responses:
         "200":
-          description: Статус успешно обновлен
+          description: Status updated
           schema:
             type: string
         "400":
-          description: 'Ошибка: Неверный формат JSON'
+          description: Ошибка валидации
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: 'Ошибка: Проблема при обновлении в базе данных'
+          description: Ошибка БД
           schema:
             additionalProperties:
               type: string
             type: object
       summary: Изменение статуса заявки
       tags:
-      - recruiter_tools
+      - applications
   /auth/candidate/signup:
     post:
       consumes:
@@ -401,15 +433,14 @@ paths:
     post:
       consumes:
       - application/json
-      description: Получает шаблон сообщения по ID, заменяет в нем плейсхолдеры {name}
-        и {job} данными кандидата и формирует прямую ссылку на чат.
+      description: Генерирует текст сообщения и ссылку на чат по шаблону
       parameters:
-      - description: ID шаблона сообщения в базе данных
+      - description: ID шаблона
         in: path
         name: id
         required: true
         type: string
-      - description: Данные для генерации сообщения
+      - description: Данные кандидата
         in: body
         name: input
         required: true
@@ -426,20 +457,19 @@ paths:
       - application/json
       responses:
         "200":
-          description: 'Пример ответа: { ''generated_text'': ''...'', ''telegram_link'':
-            ''...'' }'
+          description: Текст и ссылка
           schema:
             additionalProperties:
               type: string
             type: object
         "400":
-          description: 'Ошибка: Неверные входные данные или пустые поля'
+          description: Ошибка входных данных
           schema:
             additionalProperties:
               type: string
             type: object
         "404":
-          description: 'Ошибка: Шаблон с таким ID не найден'
+          description: Шаблон не найден
           schema:
             additionalProperties:
               type: string
@@ -448,24 +478,10 @@ paths:
       tags:
       - recruiter_tools
   /vacancies:
-    get:
-      description: Получает все активные вакансии
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              items:
-                $ref: '#/definitions/models.Vacancy'
-              type: array
-            type: array
-      summary: Список активных вакансий
-      tags:
-      - vacancies
     post:
       consumes:
       - application/json
-      description: Создает вакансию и автоматически генерирует short_link
+      description: Создает новую вакансию и автоматически генерирует short_link
       parameters:
       - description: Объект вакансии
         in: body
@@ -477,14 +493,39 @@ paths:
       - application/json
       responses:
         "201":
-          description: Вакансия успешно создана
+          description: Vacancy created
+          schema:
+            type: string
         "400":
-          description: Ошибка парсинга JSON
+          description: Ошибка валидации
           schema:
             additionalProperties:
               type: string
             type: object
       summary: Создание вакансии
+      tags:
+      - vacancies
+  /vacancies/{id}:
+    get:
+      description: Возвращает полную информацию о выбранной вакансии по ID
+      parameters:
+      - description: ID вакансии
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Vacancy'
+        "404":
+          description: Вакансия не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить информацию о вакансии
       tags:
       - vacancies
   /vacancies/{id}/applications:
@@ -508,7 +549,7 @@ paths:
       - vacancies
   /vacancies/{id}/archive:
     patch:
-      description: Переводит вакансию в статус архивной по ID
+      description: Переводит вакансию в статус "архивная" по ID
       parameters:
       - description: ID вакансии
         in: path
@@ -527,6 +568,74 @@ paths:
               type: string
             type: object
       summary: Архивация вакансии
+      tags:
+      - vacancies
+  /vacancies/{id}/dearchive:
+    patch:
+      description: Восстанавливает вакансию из архива (делает активной)
+      parameters:
+      - description: ID вакансии
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Vacancy de-archived
+          schema:
+            type: string
+        "404":
+          description: Вакансия не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Разархивация вакансии
+      tags:
+      - vacancies
+  /vacancies/active:
+    get:
+      description: Получает все незаархивированные вакансии
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Vacancy'
+            type: array
+      summary: Список активных вакансий
+      tags:
+      - vacancies
+  /vacancies/all:
+    get:
+      description: Получает список всех вакансий рекрутера (и активных, и архивных)
+      parameters:
+      - description: ID рекрутера у которого вытаскиваются все вакансии
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Vacancy'
+            type: array
+      summary: Список всех вакансий
+      tags:
+      - vacancies
+  /vacancies/inactive:
+    get:
+      description: Получает список только неактивных (заархивированных) вакансий
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Vacancy'
+            type: array
+      summary: Список архивных вакансий
       tags:
       - vacancies
   /vacancies/link/{short_link}:

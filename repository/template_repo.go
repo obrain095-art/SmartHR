@@ -14,10 +14,10 @@ func NewTemplateRepository(conn *pgxpool.Pool) *TemplateRepository {
 	return &TemplateRepository{conn}
 }
 
-func (r *TemplateRepository) Create(ctx context.Context, t models.MessageTemplate) error {
-	query := `INSERT INTO message_templates (recruiter_id, title, body_text) VALUES ($1, $2, $3)`
-	_, err := r.DB.Exec(ctx, query, t.RecruiterID, t.Title, t.BodyText)
-	return err
+func (r *TemplateRepository) Create(ctx context.Context, t models.MessageTemplate) (error, string) {
+	query := `INSERT INTO message_templates (recruiter_id, title, body_text) VALUES ($1, $2, $3) returning id::text`
+	err := r.DB.QueryRow(ctx, query, t.RecruiterID, t.Title, t.BodyText).Scan(&t.ID)
+	return err, t.ID
 }
 
 func (r *TemplateRepository) GetAllByRecruiter(ctx context.Context, recruiterID string) ([]models.MessageTemplate, error) {

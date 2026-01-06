@@ -18,49 +18,88 @@ func NewCandidateHandler(CandRepo *repository.CandidateRepository) *CandidateHan
 	return &CandidateHandler{CandRepo}
 }
 
+// GetListByVacancy godoc
+// @Summary Список заявок на вакансию
+// @Description Получает список всех откликов, привязанных к конкретному ID вакансии. (Маршрут: /:id/vacancy, где id - это ID вакансии)
+// @Tags applications
+// @Produce json
+// @Param id path string true "ID вакансии"
+// @Success 200 {array} models.Application "Список заявок"
+// @Failure 500 {object} map[string]string "Ошибка сервера"
+// @Router /applications/{id} [get]
+func (h *CandidateHandler) GetListByVacancy(c *gin.Context) {
+	vacancyID := c.Param("id")
+
+	apps, err := h.Repo.GetApplicationsByVacancy(c, vacancyID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching applications"})
+		return
+	}
+	c.JSON(http.StatusOK, apps)
+}
+
+// GetApplicationDetails godoc
+// @Summary Полная информация о заявке
+// @Description Возвращает подробную информацию о конкретном отклике по его ID. (Маршрут: /:id, где id - это ID заявки)
+// @Tags applications
+// @Produce json
+// @Param id path string true "ID заявки (application_id)"
+// @Success 200 {object} models.Application "Объект заявки"
+// @Failure 404 {object} map[string]string "Заявка не найдена"
+// @Router /applications/{id} [get]
+func (h *CandidateHandler) GetApplicationDetails(c *gin.Context) {
+	appID := c.Param("id")
+
+	app, err := h.Repo.GetApplicationByID(c, appID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Application not found"})
+		return
+	}
+	c.JSON(http.StatusOK, app)
+}
+
 // UpdateStatus godoc
 // @Summary      Изменение статуса заявки
-// @Description  Обновляет статус конкретного отклика (например: 'Интервью', 'Оффер', 'Отказ') по его ID в URL.
-// @Tags         recruiter_tools
+// @Description  Обновляет статус конкретного отклика (например: 'Интервью', 'Оффер', 'Отказ') по его ID.
+// @Tags         applications
 // @Accept       json
 // @Produce      json
 // @Param        id      path      string  true  "ID заявки (application_id)"
-// @Param        input   body      object{status=string}  true  "Новый статус для установки"
-// @Success      200     {string}  string  "Статус успешно обновлен"
-// @Failure      400     {object}  map[string]string "Ошибка: Неверный формат JSON"
-// @Failure      500     {object}  map[string]string "Ошибка: Проблема при обновлении в базе данных"
+// @Param        input   body      object{status=string}  true  "Новый статус"
+// @Success      200     {string}  string  "Status updated"
+// @Failure      400     {object}  map[string]string "Ошибка валидации"
+// @Failure      500     {object}  map[string]string "Ошибка БД"
 // @Router       /applications/{id}/status [patch]
 func (h *CandidateHandler) UpdateStatus(c *gin.Context) {
-    // 1. Берем ID из пути (согласно роуту /applications/:id/status)
-    id := c.Param("id") 
+	id := c.Param("id")
 
-    // 2. Из тела берем только новый статус
-    var input struct {
-        Status string `json:"status"`
-    }
-    
-    if err := c.ShouldBindJSON(&input); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
-        return
-    }
+	var input struct {
+		Status string `json:"status"`
+	}
 
-    if err := h.Repo.UpdateApplicationStatus(c, id, input.Status); err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
-    c.Status(http.StatusOK)
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	if err := h.Repo.UpdateApplicationStatus(c, id, input.Status); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusOK)
 }
 
 // GetAIData godoc
 // @Summary Результаты анализа ИИ
-// @Description Получает вердикт, скоринг и распознанный текст из RESUME_DATA
-// @Tags recruiter_tools
+// @Description Получает вердикт, скоринг и распознанный текст резюме
+// @Tags applications
 // @Param id path string true "ID заявки (application_id)"
 // @Produce json
 // @Success 200 {object} map[string]interface{} "Данные анализа"
+// @Failure 404 {object} map[string]string "Данные не найдены"
 // @Router /applications/{id}/ai-data [get]
 func (h *CandidateHandler) GetAIData(c *gin.Context) {
-	appID := c.Param("id") // Используем Param для путей типа /applications/:id/ai-data
+	appID := c.Param("id")
 
 	aiData, err := h.Repo.GetResumeAnalysis(c, appID)
 	if err != nil {
@@ -77,15 +116,15 @@ func (h *CandidateHandler) GetAIData(c *gin.Context) {
 
 // GenerateTelegramText godoc
 // @Summary      Генерация сообщения для Telegram
-// @Description  Получает шаблон сообщения по ID, заменяет в нем плейсхолдеры {name} и {job} данными кандидата и формирует прямую ссылку на чат.
+// @Description  Генерирует текст сообщения и ссылку на чат по шаблону
 // @Tags         recruiter_tools
 // @Accept       json
 // @Produce      json
-// @Param        id       path      string  true  "ID шаблона сообщения в базе данных"
-// @Param        input    body      object{candidate_name=string,vacancy_title=string,telegram_username=string}  true  "Данные для генерации сообщения"
-// @Success      200      {object}  map[string]string "Пример ответа: { 'generated_text': '...', 'telegram_link': '...' }"
-// @Failure      400      {object}  map[string]string "Ошибка: Неверные входные данные или пустые поля"
-// @Failure      404      {object}  map[string]string "Ошибка: Шаблон с таким ID не найден"
+// @Param        id       path      string  true  "ID шаблона"
+// @Param        input    body      object{candidate_name=string,vacancy_title=string,telegram_username=string}  true  "Данные кандидата"
+// @Success      200      {object}  map[string]string "Текст и ссылка"
+// @Failure      400      {object}  map[string]string "Ошибка входных данных"
+// @Failure      404      {object}  map[string]string "Шаблон не найден"
 // @Router       /templates/{id}/generate [post]
 func (h *CandidateHandler) GenerateTelegramText(c *gin.Context) {
 	templateID := c.Param("id")
@@ -101,20 +140,16 @@ func (h *CandidateHandler) GenerateTelegramText(c *gin.Context) {
 		return
 	}
 
-	// 1. Получаем тело шаблона из БД
 	template, err := h.Repo.GetTemplateByID(templateID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Шаблон не найден"})
 		return
 	}
 
-	// 2. Делаем простую замену переменных в тексте
-	// Предположим, в шаблоне текст: "Привет, {name}! Вакансия: {job}"
 	msg := template.BodyText
-	msg = strings.ReplaceAll(msg, "{name}", input.CandidateName)
-	msg = strings.ReplaceAll(msg, "{job}", input.VacancyTitle)
+	msg = strings.ReplaceAll(msg, "{ИМЯ}", input.CandidateName)
+	msg = strings.ReplaceAll(msg, "{ВАКАНСИЯ}", input.VacancyTitle)
 
-	// 3. Формируем прямую ссылку для открытия чата в Telegram
 	link := fmt.Sprintf("https://t.me/%s?text=%s",
 		input.TGUsername,
 		url.QueryEscape(msg),
@@ -125,7 +160,6 @@ func (h *CandidateHandler) GenerateTelegramText(c *gin.Context) {
 		"telegram_link":  link,
 	})
 }
-
 
 // // ListCandidates godoc
 // // @Summary Список кандидатов для вакансии

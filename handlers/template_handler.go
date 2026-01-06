@@ -3,8 +3,8 @@ package handlers
 import (
 	"AI_recruit/models"
 	"AI_recruit/repository"
-	"net/http"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 type TemplateHandler struct {
@@ -29,11 +29,12 @@ func (h *TemplateHandler) CreateTemplate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
-	if err := h.Repo.Create(c, t); err != nil {
+	err, Id := h.Repo.Create(c, t)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.Status(http.StatusCreated)
+	c.JSON(http.StatusCreated, gin.H{"template_id": Id})
 }
 
 // ListTemplates godoc

@@ -54,14 +54,52 @@ const docTemplate = `{
                 "responses": {}
             }
         },
-        "/applications/{id}/ai-data": {
+        "/applications/{id}": {
             "get": {
-                "description": "Получает вердикт, скоринг и распознанный текст из RESUME_DATA",
+                "description": "Возвращает подробную информацию о конкретном отклике по его ID. (Маршрут: /:id, где id - это ID заявки)",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "recruiter_tools"
+                    "applications"
+                ],
+                "summary": "Полная информация о заявке",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID заявки (application_id)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Объект заявки",
+                        "schema": {
+                            "$ref": "#/definitions/models.Application"
+                        }
+                    },
+                    "404": {
+                        "description": "Заявка не найдена",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/applications/{id}/ai-data": {
+            "get": {
+                "description": "Получает вердикт, скоринг и распознанный текст резюме",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "applications"
                 ],
                 "summary": "Результаты анализа ИИ",
                 "parameters": [
@@ -80,13 +118,22 @@ const docTemplate = `{
                             "type": "object",
                             "additionalProperties": true
                         }
+                    },
+                    "404": {
+                        "description": "Данные не найдены",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
                     }
                 }
             }
         },
         "/applications/{id}/status": {
             "patch": {
-                "description": "Обновляет статус конкретного отклика (например: 'Интервью', 'Оффер', 'Отказ') по его ID в URL.",
+                "description": "Обновляет статус конкретного отклика (например: 'Интервью', 'Оффер', 'Отказ') по его ID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -94,7 +141,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "recruiter_tools"
+                    "applications"
                 ],
                 "summary": "Изменение статуса заявки",
                 "parameters": [
@@ -106,7 +153,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Новый статус для установки",
+                        "description": "Новый статус",
                         "name": "input",
                         "in": "body",
                         "required": true,
@@ -122,13 +169,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Статус успешно обновлен",
+                        "description": "Status updated",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "Ошибка: Неверный формат JSON",
+                        "description": "Ошибка валидации",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -137,7 +184,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Ошибка: Проблема при обновлении в базе данных",
+                        "description": "Ошибка БД",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -516,7 +563,7 @@ const docTemplate = `{
         },
         "/templates/{id}/generate": {
             "post": {
-                "description": "Получает шаблон сообщения по ID, заменяет в нем плейсхолдеры {name} и {job} данными кандидата и формирует прямую ссылку на чат.",
+                "description": "Генерирует текст сообщения и ссылку на чат по шаблону",
                 "consumes": [
                     "application/json"
                 ],
@@ -530,13 +577,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "ID шаблона сообщения в базе данных",
+                        "description": "ID шаблона",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Данные для генерации сообщения",
+                        "description": "Данные кандидата",
                         "name": "input",
                         "in": "body",
                         "required": true,
@@ -558,7 +605,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Пример ответа: { 'generated_text': '...', 'telegram_link': '...' }",
+                        "description": "Текст и ссылка",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -567,7 +614,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Ошибка: Неверные входные данные или пустые поля",
+                        "description": "Ошибка входных данных",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -576,7 +623,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Ошибка: Шаблон с таким ID не найден",
+                        "description": "Шаблон не найден",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -588,29 +635,8 @@ const docTemplate = `{
             }
         },
         "/vacancies": {
-            "get": {
-                "description": "Получает все активные вакансии",
-                "tags": [
-                    "vacancies"
-                ],
-                "summary": "Список активных вакансий",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "array",
-                                "items": {
-                                    "$ref": "#/definitions/models.Vacancy"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
             "post": {
-                "description": "Создает вакансию и автоматически генерирует short_link",
+                "description": "Создает новую вакансию и автоматически генерирует short_link",
                 "consumes": [
                     "application/json"
                 ],
@@ -634,14 +660,86 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Вакансия успешно создана"
+                        "description": "Vacancy created",
+                        "schema": {
+                            "type": "string"
+                        }
                     },
                     "400": {
-                        "description": "Ошибка парсинга JSON",
+                        "description": "Ошибка валидации",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
                                 "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/vacancies/active": {
+            "get": {
+                "description": "Получает все незаархивированные вакансии",
+                "tags": [
+                    "vacancies"
+                ],
+                "summary": "Список активных вакансий",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Vacancy"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/vacancies/all": {
+            "get": {
+                "description": "Получает список всех вакансий рекрутера (и активных, и архивных)",
+                "tags": [
+                    "vacancies"
+                ],
+                "summary": "Список всех вакансий",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID рекрутера у которого вытаскиваются все вакансии",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Vacancy"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/vacancies/inactive": {
+            "get": {
+                "description": "Получает список только неактивных (заархивированных) вакансий",
+                "tags": [
+                    "vacancies"
+                ],
+                "summary": "Список архивных вакансий",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Vacancy"
                             }
                         }
                     }
@@ -660,6 +758,41 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Короткая ссылка вакансии",
                         "name": "short_link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Vacancy"
+                        }
+                    },
+                    "404": {
+                        "description": "Вакансия не найдена",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/vacancies/{id}": {
+            "get": {
+                "description": "Возвращает полную информацию о выбранной вакансии по ID",
+                "tags": [
+                    "vacancies"
+                ],
+                "summary": "Получить информацию о вакансии",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID вакансии",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     }
@@ -714,7 +847,7 @@ const docTemplate = `{
         },
         "/vacancies/{id}/archive": {
             "patch": {
-                "description": "Переводит вакансию в статус архивной по ID",
+                "description": "Переводит вакансию в статус \"архивная\" по ID",
                 "tags": [
                     "vacancies"
                 ],
@@ -731,6 +864,41 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "Vacancy archived",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Вакансия не найдена",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/vacancies/{id}/dearchive": {
+            "patch": {
+                "description": "Восстанавливает вакансию из архива (делает активной)",
+                "tags": [
+                    "vacancies"
+                ],
+                "summary": "Разархивация вакансии",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID вакансии",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Vacancy de-archived",
                         "schema": {
                             "type": "string"
                         }
