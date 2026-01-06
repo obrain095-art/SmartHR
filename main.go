@@ -62,7 +62,7 @@ func main() {
 		c.Next()
 	})
 	
-	handlers.SetupRoutes(r, conn)
+	handlers.SetupRoutes(r, conn, config.Config.AI_Key)
 
 	// 6. Запуск сервера
 	l.Info("Сервер запущен на порту :8080")

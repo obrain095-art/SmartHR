@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"AI_recruit/config"
 	"AI_recruit/docs"
 	"AI_recruit/repository"
 	"AI_recruit/services"
@@ -13,14 +12,14 @@ import (
 	swagger "github.com/swaggo/gin-swagger"
 )
 
-func SetupRoutes(r *gin.Engine, conn *pgxpool.Pool) {
+func SetupRoutes(r *gin.Engine, conn *pgxpool.Pool, AI_KEY string) {
 
 	recRepo := repository.NewVacancyRepository(conn)
 	authRepo := repository.NewAuthRepository(conn)
 	portalRepo := repository.NewCandidatePortalRepository(conn)
 	candRepo := repository.NewCandidateRepository(conn)
 
-	aiClient := openai.NewClient(config.Config.AI_Key)
+	aiClient := openai.NewClient(AI_KEY)
 	Ai_service := &services.AIService{Client: aiClient}
 
 	recHandler := NewVacancyHandler(recRepo)
