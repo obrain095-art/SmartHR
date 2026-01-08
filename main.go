@@ -16,7 +16,7 @@ import (
 // @title AI Recruiting API
 // @version 1.0
 // @description API сервис для автоматизации рекрутинга.
-// @host ai-recruiting.onrender.com
+// @host SmartHR.onrender.com
 // @BasePath /
 func main() {
 	// 1. Инициализация логгера
@@ -42,14 +42,12 @@ func main() {
 	// 4. Настройка Gin
 	r := gin.Default()
 
-	
-
 	// Настройка CORS
 	r.Use(func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
 
 		// Разрешаем только нужные фронты
-		if origin == "https://ai-recruiting-frontend.onrender.com" {
+		if origin == "https://smarthr-frontend-t41p.onrender.com" {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 			c.Writer.Header().Set("Vary", "Origin") // чтобы браузеры кэш правильно делали
 		}
@@ -65,7 +63,7 @@ func main() {
 
 		c.Next()
 	})
-	
+
 	handlers.SetupRoutes(r, conn, config.Config.AI_Key)
 
 	// 6. Запуск сервера
