@@ -47,7 +47,7 @@ func main() {
 		origin := c.Request.Header.Get("Origin")
 
 		// Разрешаем только нужные фронты
-		if origin == "https://smarthr-frontend-t41p.onrender.com" {
+		if origin == "https://smarthr-9qi3.onrender.com" {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 			c.Writer.Header().Set("Vary", "Origin") // чтобы браузеры кэш правильно делали
 		}
