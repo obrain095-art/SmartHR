@@ -13,7 +13,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// @title AI Recruiting API
+// @title SmartHR API
 // @version 1.0
 // @description API сервис для автоматизации рекрутинга.
 // @host SmartHR.onrender.com
