@@ -57,11 +57,11 @@ definitions:
       title:
         type: string
     type: object
-host: ai-recruiting.onrender.com
+host: SmartHR.onrender.com
 info:
   contact: {}
   description: API сервис для автоматизации рекрутинга.
-  title: AI Recruiting API
+  title: SmartHR API
   version: "1.0"
 paths:
   /applications:
